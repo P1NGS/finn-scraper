@@ -4,6 +4,21 @@ This is a docker container that scraps fnn.no based on url and list listings.
 # Requirements
 docker, docker-compose, Disocrd
 
+# files
+```
+.
+├── .env
+├── docker-compose.yml
+└── finn-scraper
+    ├── Dockerfile
+    ├── public
+    │   └── index.html
+    ├── results.json
+    ├── searches.json
+    └── server.js
+
+2 directories, 7 files
+```
 
 
 
