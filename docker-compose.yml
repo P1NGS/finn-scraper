@@ -1,0 +1,12 @@
+version: '3.3'
+services:
+  finn-scraper:
+    build: ./finn-scraper
+    container_name: finn-scraper
+    restart: unless-stopped
+    ports:
+      - '5000:8080' # Expose on port 5000; use your main Nginx container to reverse proxy
+    volumes:
+      - ./finn-scraper/searches.json:/app/searches.json
+      - ./finn-scraper/results.json:/app/results.json
+      - ./finn-scraper/public:/app/public
