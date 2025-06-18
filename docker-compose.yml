@@ -3,6 +3,7 @@ version: '3.3'
 services:
   finn-scraper:
     build: ./finn-scraper
+    env_file: .env
     container_name: finn-scraper
     restart: unless-stopped
     ports:
