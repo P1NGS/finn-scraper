@@ -1,5 +1,8 @@
-// Finn Scraper v0.1 - Added /searches endpoint, logs, and fixes for frontend fetch
+// Finn Scraper v0.2 - Added Discord webhook notification
 
+require("dotenv").config();
+
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const express = require("express");
 const fs = require("fs");
 const axios = require("axios");
@@ -70,21 +73,52 @@ async function scrapeFinn(url) {
 
 async function runScraper() {
   const searches = loadSearches();
+  const previousResults = loadResults();
+  const previousLinks = new Set(previousResults.map((r) => r.link));
+
   let allResults = [];
+  let newListings = [];
 
   for (const entry of searches) {
     const results = await scrapeFinn(entry.url);
-    allResults = allResults.concat(
-      results.map((r) => ({
-        ...r,
-        searchUrl: entry.url,
-        searchName: entry.name,
-      }))
-    );
+    const enriched = results.map((r) => ({
+      ...r,
+      searchUrl: entry.url,
+      searchName: entry.name,
+    }));
+
+    for (const result of enriched) {
+      if (!previousLinks.has(result.link)) {
+        newListings.push(result);
+      }
+    }
+
+    allResults = allResults.concat(enriched);
+  }
+
+  if (newListings.length > 0 && DISCORD_WEBHOOK_URL) {
+    for (const listing of newListings) {
+      await sendDiscordNotification(listing);
+    }
   }
 
   saveResults(allResults);
   console.log("Scraped total", allResults.length, "results");
+}
+
+async function sendDiscordNotification(listing) {
+  const message = {
+    content: `🆕 **${listing.searchName || "New Listing"}**
+**${listing.title}** - ${listing.price || "No price"}
+🔗 <${listing.link}>`,
+  };
+
+  try {
+    await axios.post(DISCORD_WEBHOOK_URL, message);
+    console.log("🔔 Sent to Discord:", listing.title);
+  } catch (err) {
+    console.error("❌ Failed to send Discord alert:", err.message);
+  }
 }
 
 setInterval(runScraper, 10 * 60 * 1000);
@@ -130,15 +164,6 @@ app.post("/remove", (req, res) => {
 
 app.get("/status", (req, res) => {
   res.json(loadResults());
-});
-
-app.get("/alert", (req, res) => {
-  const results = loadResults();
-  if (results.length > 0) {
-    res.status(500).json({ alert: true, count: results.length });
-  } else {
-    res.json({ alert: false });
-  }
 });
 
 app.post("/run", async (req, res) => {
