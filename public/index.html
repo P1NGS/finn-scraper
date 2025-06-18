@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finn Scraper Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 1em; max-width: 900px; }
+    input, button { font-size: 1em; padding: 0.3em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; }
+    th { background: #eee; }
+    a { color: #06c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    #results { margin-top: 2em; }
+  </style>
+</head>
+<body>
+  <h1>Finn Scraper Dashboard</h1>
+
+  <form id="addForm" method="post" action="/add">
+    <label>
+      Search Name:
+      <input type="text" name="name" placeholder="Friendly name (optional)" />
+    </label>
+    <br /><br />
+    <label>
+      Finn search URL:
+      <input type="url" name="url" placeholder="https://www.finn.no/..." required size="60" />
+    </label>
+    <button type="submit">Add</button>
+  </form>
+
+  <h2>Saved Searches</h2>
+  <table id="searchTable" aria-label="Saved searches">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>URL</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Filled dynamically -->
+    </tbody>
+  </table>
+
+  <form id="runForm" method="post" action="/run" style="margin-top:1em;">
+    <button type="button" id="runBtn">Run Scraper Now</button>
+  </form>
+
+  <div id="results">
+    <h2>Scrape Results</h2>
+    <table id="resultsTable" aria-label="Scrape results">
+      <thead>
+        <tr>
+          <th>Search Name</th>
+          <th>Title</th>
+          <th>Price</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filled dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadSearches() {
+      const res = await fetch("/searches");
+      return await res.json();
+    }
+
+    async function loadResults() {
+      const res = await fetch("/status");
+      return await res.json();
+    }
+
+    function renderSearches(searches) {
+      const tbody = document.querySelector("#searchTable tbody");
+      tbody.innerHTML = "";
+      for (const s of searches) {
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td");
+        nameTd.textContent = s.name;
+        const urlTd = document.createElement("td");
+        const a = document.createElement("a");
+        a.href = s.url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = s.url;
+        urlTd.appendChild(a);
+        const removeTd = document.createElement("td");
+        const removeForm = document.createElement("form");
+        removeForm.method = "post";
+        removeForm.action = "/remove";
+        removeForm.style.margin = "0";
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "url";
+        input.value = s.url;
+        const btn = document.createElement("button");
+        btn.type = "submit";
+        btn.textContent = "Remove";
+        removeForm.appendChild(input);
+        removeForm.appendChild(btn);
+        removeTd.appendChild(removeForm);
+
+        tr.appendChild(nameTd);
+        tr.appendChild(urlTd);
+        tr.appendChild(removeTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderResults(results) {
+      const tbody = document.querySelector("#resultsTable tbody");
+      tbody.innerHTML = "";
+      for (const r of results) {
+        const tr = document.createElement("tr");
+        const searchNameTd = document.createElement("td");
+        searchNameTd.textContent = r.searchName || "Unknown";
+        const titleTd = document.createElement("td");
+        titleTd.textContent = r.title;
+        const priceTd = document.createElement("td");
+        priceTd.textContent = r.price;
+        const linkTd = document.createElement("td");
+        const a = document.createElement("a");
+        a.href = r.link;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = "Link";
+        linkTd.appendChild(a);
+
+        tr.appendChild(searchNameTd);
+        tr.appendChild(titleTd);
+        tr.appendChild(priceTd);
+        tr.appendChild(linkTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function refresh() {
+      const searches = await loadSearches();
+      renderSearches(searches);
+
+      const results = await loadResults();
+      renderResults(results);
+    }
+
+    document.getElementById("runBtn").addEventListener("click", async (event) => {
+      event.preventDefault();
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = "Running...";
+
+      try {
+        const res = await fetch("/run", { method: "POST" });
+        if (!res.ok) throw new Error("Scraper failed");
+        const data = await res.json();
+        alert(`Scrape complete! Found ${data.count || 0} results.`);
+        await refresh();
+      } catch (err) {
+        alert("Error running scraper: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run Scraper Now";
+      }
+    });
+
+    // Refresh on load and every 30 sec
+    refresh();
+    setInterval(refresh, 30000);
+  </script>
+</body>
+</html>
