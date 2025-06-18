@@ -1,3 +1,4 @@
+# Version 0.1
 version: '3.3' 
 services:
   finn-scraper:
