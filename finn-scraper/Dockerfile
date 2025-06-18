@@ -1,3 +1,4 @@
+# v0.2
 FROM node:20
 
 # Set working directory
