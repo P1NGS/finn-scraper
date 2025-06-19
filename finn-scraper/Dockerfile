@@ -1,4 +1,4 @@
-# v0.2
+# v0.3
 FROM node:20
 
 # Set working directory
@@ -11,7 +11,7 @@ COPY searches.json .
 COPY public ./public
 
 # Install only the required dependencies
-RUN npm install express axios cheerio dotenv
+RUN npm install express axios cheerio dotenv express-basic-auth
 
 # Expose the port your app listens on
 EXPOSE 8080
