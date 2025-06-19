@@ -1,4 +1,4 @@
-// Finn Scraper v0.2 - Added Discord webhook notification
+// Finn Scraper v0.3 - Added pasword protection
 
 require("dotenv").config();
 
@@ -8,15 +8,25 @@ const fs = require("fs");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const path = require("path");
-
 const app = express();
+
+const basicAuth = require('express-basic-auth');
 const PORT = process.env.PORT || 8080;
 const SEARCH_FILE = "searches.json";
 const RESULTS_FILE = "results.json";
 
+let isScraping = false;
+
+app.use(basicAuth({
+  users: { 'admin': process.env.BASIC_AUTH_PASSWORD || 'yourpassword' },
+  challenge: true,
+  unauthorizedResponse: (req) => 'Unauthorized'
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
+
 
 function loadSearches() {
   if (!fs.existsSync(SEARCH_FILE)) fs.writeFileSync(SEARCH_FILE, "[]");
@@ -72,9 +82,14 @@ async function scrapeFinn(url) {
 }
 
 async function runScraper() {
+  
+  if (isScraping) return;
+  isScraping = true;
+
   const searches = loadSearches();
   const previousResults = loadResults();
   const previousLinks = new Set(previousResults.map((r) => r.link));
+  const seenLinks = new Set();
 
   let allResults = [];
   let newListings = [];
@@ -88,8 +103,9 @@ async function runScraper() {
     }));
 
     for (const result of enriched) {
-      if (!previousLinks.has(result.link)) {
+      if (!previousLinks.has(result.link) && !seenLinks.has(result.link)) {
         newListings.push(result);
+        seenLinks.add(result.link);
       }
     }
 
@@ -104,6 +120,7 @@ async function runScraper() {
 
   saveResults(allResults);
   console.log("Scraped total", allResults.length, "results");
+  isScraping = false;
 }
 
 async function sendDiscordNotification(listing) {
