@@ -1,8 +1,11 @@
 # finn-scraper
 This is a docker container that scraps fnn.no based on url and list listings.
 
+# Login
+The default username is admin and password is set in .env file
+
 # Requirements
-docker, docker-compose, Disocrd
+docker, docker-compose, Discord
 
 # files
 ```
@@ -20,6 +23,26 @@ docker, docker-compose, Disocrd
 2 directories, 7 files
 ```
 
+# Install
+## Download
+```curl
+curl -L -o finn-scraper.zip https://github.com/P1NGS/finn-scraper/archive/refs/heads/main.zip
+```
+```
+unzip finn-scraper.zip
+```
+or
+```git 
+git clone https://github.com/P1NGS/domeneshop-ddns-docker.git
+```
+## Configure Password and Discord webhook
+```sh
+nano .env
+```
+## Build docker image
+```sh
+docker-compose up -d --build
+```
 
 
 # CopyRight
